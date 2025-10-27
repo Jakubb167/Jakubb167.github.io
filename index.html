@@ -1649,10 +1649,11 @@
             if (!charts[name] || !rawData.length) return;
 
             const slider = sliders[name];
-            const windowStyle = window.getComputedStyle(slider.window);
-            
-            const leftPercent = parseFloat(windowStyle.left) / slider.slider.offsetWidth * 100;
-            const widthPercent = parseFloat(windowStyle.width) / slider.slider.offsetWidth * 100;
+            const rect = slider.window.getBoundingClientRect();
+            const parentRect = slider.slider.getBoundingClientRect();
+
+            const leftPercent = ((rect.left - parentRect.left) / parentRect.width) * 100;
+            const widthPercent = (rect.width / parentRect.width) * 100;
             const rightPercent = leftPercent + widthPercent;
 
             const startIndex = Math.floor((leftPercent / 100) * rawData.length);
@@ -1756,3 +1757,4 @@
     </script>
 </body>
 </html>
+
