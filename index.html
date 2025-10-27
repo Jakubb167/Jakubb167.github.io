@@ -261,25 +261,25 @@
         .heatmap-wrapper {
             position: relative;
             width: 100%;
-            overflow-x: auto;
+            overflow-x: visible;
+            overflow-y: visible;
         }
 
         .heatmap-grid {
             display: grid;
-            grid-template-columns: 50px 1fr;
+            grid-template-columns: 60px 1fr;
             gap: 0;
-            min-width: 100%;
+            width: 100%;
         }
 
         .heatmap-y-labels {
-            display: grid;
-            grid-template-rows: 30px repeat(24, 1fr);
+            display: flex;
+            flex-direction: column;
             gap: 0;
-            padding-top: 30px;
         }
 
         .heatmap-y-label {
-            font-size: 0.75em;
+            font-size: 0.7em;
             color: #666;
             text-align: right;
             padding-right: 8px;
@@ -287,6 +287,7 @@
             align-items: center;
             justify-content: flex-end;
             height: 20px;
+            line-height: 20px;
         }
 
         .heatmap-content-wrapper {
@@ -299,15 +300,16 @@
             height: 30px;
             position: relative;
             border-bottom: 1px solid #ddd;
+            margin-bottom: 0;
         }
 
         .heatmap-month-label {
             position: absolute;
-            font-size: 0.8em;
+            font-size: 0.75em;
             color: #666;
             font-weight: 600;
             transform: translateX(-50%);
-            top: 5px;
+            top: 8px;
         }
 
         .heatmap-data {
@@ -331,7 +333,7 @@
         }
 
         .heatmap-hour-cell:hover {
-            transform: scale(1.2);
+            transform: scale(1.5);
             z-index: 1000;
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
             border: 2px solid white;
@@ -352,13 +354,15 @@
             height: 25px;
             border-radius: 5px;
             background: linear-gradient(to right, 
-                hsl(240, 80%, 50%), 
-                hsl(200, 80%, 50%), 
-                hsl(160, 80%, 50%),
-                hsl(120, 80%, 50%),
-                hsl(60, 80%, 50%), 
-                hsl(30, 80%, 50%),
-                hsl(0, 80%, 50%)
+                #1a2a4a,
+                #3c5c8c,
+                #6b9bc4,
+                #a8cde3,
+                #f5dc78,
+                #faa04a,
+                #e8583a,
+                #c83028,
+                #8b0000
             );
         }
 
@@ -376,6 +380,7 @@
             border-radius: 6px;
             overflow: hidden;
             cursor: pointer;
+            user-select: none;
         }
 
         .chart-slider-preview {
@@ -402,6 +407,7 @@
             height: 100%;
             background: #667eea;
             cursor: ew-resize;
+            z-index: 10;
         }
 
         .chart-slider-handle.left {
@@ -736,7 +742,6 @@
         window.addEventListener('DOMContentLoaded', function() {
             loadData();
             autoRefreshTimer = setInterval(loadData, AUTO_REFRESH_INTERVAL);
-            initializeSliders();
         });
 
         function resetZoom(chartName) {
@@ -828,6 +833,7 @@
                 
                 if (Object.keys(charts).length === 0) {
                     initializeCharts();
+                    initializeSliders();
                 }
                 
                 updateCharts();
@@ -1337,33 +1343,76 @@
             return { labels, values: counts };
         }
 
+        function getColorForTemp(temp, minTemp, maxTemp) {
+            let r, g, b;
+            
+            if (temp < -5) {
+                r = 26; g = 56; b = 83;
+            } else if (temp < 0) {
+                const ratio = (temp + 5) / 5;
+                r = Math.round(26 + ratio * (91 - 26));
+                g = Math.round(56 + ratio * (143 - 56));
+                b = Math.round(83 + ratio * (185 - 83));
+            } else if (temp < 5) {
+                const ratio = temp / 5;
+                r = Math.round(91 + ratio * (136 - 91));
+                g = Math.round(143 + ratio * (197 - 143));
+                b = Math.round(185 + ratio * (221 - 185));
+            } else if (temp < 10) {
+                const ratio = (temp - 5) / 5;
+                r = Math.round(136 + ratio * (184 - 136));
+                g = Math.round(197 + ratio * (224 - 197));
+                b = Math.round(221 + ratio * (168 - 221));
+            } else if (temp < 15) {
+                const ratio = (temp - 10) / 5;
+                r = Math.round(184 + ratio * (245 - 184));
+                g = Math.round(224 + ratio * (232 - 224));
+                b = Math.round(168 + ratio * (125 - 168));
+            } else if (temp < 20) {
+                const ratio = (temp - 15) / 5;
+                r = Math.round(245 + ratio * (250 - 245));
+                g = Math.round(232 + ratio * (172 - 232));
+                b = Math.round(125 + ratio * (61 - 125));
+            } else if (temp < 25) {
+                const ratio = (temp - 20) / 5;
+                r = Math.round(250 + ratio * (248 - 250));
+                g = Math.round(172 + ratio * (92 - 172));
+                b = Math.round(61 + ratio * (60 - 61));
+            } else if (temp < 30) {
+                const ratio = (temp - 25) / 5;
+                r = Math.round(248 + ratio * (229 - 248));
+                g = Math.round(92 + ratio * (53 - 92));
+                b = Math.round(60 + ratio * (44 - 60));
+            } else {
+                r = 200; g = 16; b = 16;
+            }
+            
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
         function updateHeatmap(data) {
             const currentYear = new Date().getFullYear();
+            const daysInYear = isLeapYear(currentYear) ? 366 : 365;
             
-            // Vytvoření matice pro každý den v roce a každou hodinu
-            const daysInYear = 365;
             const matrix = Array(daysInYear).fill(null).map(() => Array(24).fill(null).map(() => []));
             
             data.forEach(d => {
                 if (d.datetime.getFullYear() !== currentYear) return;
                 
-                const startOfYear = new Date(currentYear, 0, 1);
-                const dayOfYear = Math.floor((d.datetime - startOfYear) / (1000 * 60 * 60 * 24));
+                const dayOfYear = getDayOfYear(d.datetime);
                 const hour = d.datetime.getHours();
                 
-                if (dayOfYear >= 0 && dayOfYear < daysInYear) {
+                if (dayOfYear >= 0 && dayOfYear < daysInYear && hour >= 0 && hour < 24) {
                     matrix[dayOfYear][hour].push(d.teplota);
                 }
             });
 
-            // Průměrování
             const avgMatrix = matrix.map(day => 
                 day.map(hours => 
                     hours.length > 0 ? hours.reduce((a, b) => a + b, 0) / hours.length : null
                 )
             );
 
-            // Zjištění min/max
             const allTemps = avgMatrix.flat().filter(t => t !== null);
             if (allTemps.length === 0) {
                 document.getElementById('heatmapGrid').innerHTML = '<p style="color: #999; padding: 20px;">Nedostatek dat pro zobrazení heatmapy</p>';
@@ -1376,17 +1425,14 @@
             document.getElementById('heatmapMin').textContent = minTemp.toFixed(1) + '°C';
             document.getElementById('heatmapMax').textContent = maxTemp.toFixed(1) + '°C';
 
-            // Vytvoření HTML struktury
             const heatmapDiv = document.getElementById('heatmapGrid');
             heatmapDiv.innerHTML = '';
 
             const gridContainer = document.createElement('div');
             gridContainer.className = 'heatmap-grid';
 
-            // Y osa (hodiny)
             const yLabels = document.createElement('div');
             yLabels.className = 'heatmap-y-labels';
-            yLabels.innerHTML = '<div></div>'; // Prázdný prostor pro horní roh
             
             for (let hour = 0; hour < 24; hour++) {
                 const label = document.createElement('div');
@@ -1396,21 +1442,14 @@
             }
             gridContainer.appendChild(yLabels);
 
-            // Obsah s X osou a daty
             const contentWrapper = document.createElement('div');
             contentWrapper.className = 'heatmap-content-wrapper';
 
-            // X osa (měsíce)
             const xLabels = document.createElement('div');
             xLabels.className = 'heatmap-x-labels';
             
             const monthNames = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čvn', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'];
-            const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-            
-            // Přestupný rok
-            if (currentYear % 4 === 0 && (currentYear % 100 !== 0 || currentYear % 400 === 0)) {
-                daysInMonth[1] = 29;
-            }
+            const daysInMonth = [31, isLeapYear(currentYear) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
             let cumulativeDays = 0;
             monthNames.forEach((month, idx) => {
@@ -1424,7 +1463,6 @@
             });
             contentWrapper.appendChild(xLabels);
 
-            // Data (dny a hodiny)
             const dataDiv = document.createElement('div');
             dataDiv.className = 'heatmap-data';
 
@@ -1437,11 +1475,9 @@
                     cell.className = 'heatmap-hour-cell';
 
                     if (temp !== null) {
-                        const normalized = (temp - minTemp) / (maxTemp - minTemp);
-                        const hue = 240 - normalized * 240; // Modrá → Červená
-                        cell.style.background = `hsl(${hue}, 80%, 50%)`;
+                        cell.style.background = getColorForTemp(temp, minTemp, maxTemp);
                         
-                        const date = new Date(currentYear, 0, dayIndex + 1);
+                        const date = getDateFromDayOfYear(dayIndex, currentYear);
                         cell.title = `${date.getDate()}. ${date.getMonth() + 1}. ${currentYear} ${hour}:00 - ${temp.toFixed(1)}°C`;
                     } else {
                         cell.style.background = '#e0e0e0';
@@ -1456,6 +1492,25 @@
             contentWrapper.appendChild(dataDiv);
             gridContainer.appendChild(contentWrapper);
             heatmapDiv.appendChild(gridContainer);
+        }
+
+        function isLeapYear(year) {
+            return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+        }
+
+        function getDayOfYear(date) {
+            const tempDate = new Date(date.getTime());
+            tempDate.setHours(12, 0, 0, 0);
+            const start = new Date(tempDate.getFullYear(), 0, 1);	
+            const diff = tempDate - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            return Math.floor(diff / oneDay);
+        }
+
+        function getDateFromDayOfYear(dayOfYear, year) {
+            const date = new Date(year, 0, 1);
+            date.setDate(date.getDate() + dayOfYear);
+            return date;
         }
 
         function initializeSliders() {
@@ -1475,7 +1530,8 @@
                     resizeHandle: null,
                     startX: 0,
                     startLeft: 0,
-                    startWidth: 0
+                    startWidth: 0,
+                    startRight: 0
                 };
 
                 sliderWindow.style.left = '0%';
@@ -1483,39 +1539,59 @@
 
                 sliderWindow.addEventListener('mousedown', (e) => {
                     if (e.target.classList.contains('chart-slider-handle')) return;
-                    
-                    sliders[name].isDragging = true;
-                    sliders[name].startX = e.clientX;
-                    sliders[name].startLeft = sliderWindow.offsetLeft;
-                    e.preventDefault();
+                    handleSliderMouseDown(e, name);
                 });
-
+                
                 const leftHandle = sliderWindow.querySelector('.chart-slider-handle.left');
                 const rightHandle = sliderWindow.querySelector('.chart-slider-handle.right');
 
-                leftHandle.addEventListener('mousedown', (e) => {
-                    sliders[name].isResizing = true;
-                    sliders[name].resizeHandle = 'left';
-                    sliders[name].startX = e.clientX;
-                    sliders[name].startLeft = sliderWindow.offsetLeft;
-                    sliders[name].startWidth = sliderWindow.offsetWidth;
-                    e.stopPropagation();
-                    e.preventDefault();
-                });
-
-                rightHandle.addEventListener('mousedown', (e) => {
-                    sliders[name].isResizing = true;
-                    sliders[name].resizeHandle = 'right';
-                    sliders[name].startX = e.clientX;
-                    sliders[name].startLeft = sliderWindow.offsetLeft;
-                    sliders[name].startWidth = sliderWindow.offsetWidth;
-                    e.stopPropagation();
-                    e.preventDefault();
-                });
+                if (leftHandle) {
+                    leftHandle.addEventListener('mousedown', (e) => handleResizeStart(e, name, 'left'));
+                }
+                
+                if (rightHandle) {
+                    rightHandle.addEventListener('mousedown', (e) => handleResizeStart(e, name, 'right'));
+                }
             });
 
             document.addEventListener('mousemove', handleSliderMouseMove);
             document.addEventListener('mouseup', handleSliderMouseUp);
+        }
+
+        function handleSliderMouseDown(e, name) {
+            const slider = sliders[name];
+            if (!slider) return;
+            
+            slider.isDragging = true;
+            slider.startX = e.clientX;
+            
+            const rect = slider.window.getBoundingClientRect();
+            const parentRect = slider.slider.getBoundingClientRect();
+            
+            slider.startLeft = ((rect.left - parentRect.left) / parentRect.width) * 100;
+            slider.startWidth = (rect.width / parentRect.width) * 100;
+            
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function handleResizeStart(e, name, handle) {
+            const slider = sliders[name];
+            if (!slider) return;
+            
+            slider.isResizing = true;
+            slider.resizeHandle = handle;
+            slider.startX = e.clientX;
+            
+            const rect = slider.window.getBoundingClientRect();
+            const parentRect = slider.slider.getBoundingClientRect();
+            
+            slider.startLeft = ((rect.left - parentRect.left) / parentRect.width) * 100;
+            slider.startWidth = (rect.width / parentRect.width) * 100;
+            slider.startRight = slider.startLeft + slider.startWidth;
+            
+            e.stopPropagation();
+            e.preventDefault();
         }
 
         function handleSliderMouseMove(e) {
@@ -1523,41 +1599,40 @@
                 const slider = sliders[name];
                 if (!slider.isDragging && !slider.isResizing) return;
 
-                const sliderRect = slider.slider.getBoundingClientRect();
+                const parentRect = slider.slider.getBoundingClientRect();
                 const deltaX = e.clientX - slider.startX;
-                const deltaPercent = (deltaX / sliderRect.width) * 100;
+                const deltaPercent = (deltaX / parentRect.width) * 100;
 
                 if (slider.isDragging) {
-                    let newLeft = ((slider.startLeft + deltaX) / sliderRect.width) * 100;
-                    const windowWidth = (slider.window.offsetWidth / sliderRect.width) * 100;
-                    
-                    newLeft = Math.max(0, Math.min(100 - windowWidth, newLeft));
+                    let newLeft = slider.startLeft + deltaPercent;
+                    newLeft = Math.max(0, Math.min(100 - slider.startWidth, newLeft));
                     slider.window.style.left = newLeft + '%';
-                    
-                    updateChartFromSlider(name);
-                } else if (slider.isResizing) {
-                    const currentLeft = (slider.window.offsetLeft / sliderRect.width) * 100;
-                    const currentWidth = (slider.window.offsetWidth / sliderRect.width) * 100;
-
+                    requestAnimationFrame(() => updateChartFromSlider(name));
+                } 
+                else if (slider.isResizing) {
                     if (slider.resizeHandle === 'left') {
-                        let newLeft = ((slider.startLeft + deltaX) / sliderRect.width) * 100;
-                        let newWidth = currentWidth - (newLeft - currentLeft);
+                        let newLeft = slider.startLeft + deltaPercent;
+                        let newWidth = slider.startWidth - deltaPercent;
+                        const minWidth = 5;
                         
-                        if (newWidth < 5) {
-                            newWidth = 5;
-                            newLeft = currentLeft + currentWidth - 5;
+                        if (newWidth < minWidth) {
+                            newWidth = minWidth;
+                            newLeft = slider.startRight - minWidth;
                         }
                         
                         newLeft = Math.max(0, newLeft);
                         slider.window.style.left = newLeft + '%';
                         slider.window.style.width = newWidth + '%';
-                    } else if (slider.resizeHandle === 'right') {
-                        let newWidth = ((slider.startWidth + deltaX) / sliderRect.width) * 100;
-                        newWidth = Math.max(5, Math.min(100 - currentLeft, newWidth));
+                    } 
+                    else if (slider.resizeHandle === 'right') {
+                        let newWidth = slider.startWidth + deltaPercent;
+                        const minWidth = 5;
+                        newWidth = Math.max(minWidth, newWidth);
+                        const maxWidth = 100 - slider.startLeft;
+                        newWidth = Math.min(maxWidth, newWidth);
                         slider.window.style.width = newWidth + '%';
                     }
-                    
-                    updateChartFromSlider(name);
+                    requestAnimationFrame(() => updateChartFromSlider(name));
                 }
             });
         }
@@ -1574,55 +1649,64 @@
             if (!charts[name] || !rawData.length) return;
 
             const slider = sliders[name];
-            const sliderRect = slider.slider.getBoundingClientRect();
-            const windowLeft = slider.window.offsetLeft / sliderRect.width;
-            const windowRight = (slider.window.offsetLeft + slider.window.offsetWidth) / sliderRect.width;
+            const windowStyle = window.getComputedStyle(slider.window);
+            
+            const leftPercent = parseFloat(windowStyle.left) / slider.slider.offsetWidth * 100;
+            const widthPercent = parseFloat(windowStyle.width) / slider.slider.offsetWidth * 100;
+            const rightPercent = leftPercent + widthPercent;
 
-            const totalDataPoints = rawData.length;
-            const startIndex = Math.floor(windowLeft * totalDataPoints);
-            const endIndex = Math.ceil(windowRight * totalDataPoints);
+            const startIndex = Math.floor((leftPercent / 100) * rawData.length);
+            const endIndex = Math.ceil((rightPercent / 100) * rawData.length);
 
-            const filteredData = rawData.slice(startIndex, endIndex);
+            const filteredData = rawData.slice(startIndex, Math.min(endIndex, rawData.length));
 
             if (filteredData.length === 0) return;
 
             const startDate = filteredData[0].datetime;
             const endDate = filteredData[filteredData.length - 1].datetime;
 
-            document.getElementById(`${name}SliderStart`).textContent = startDate.toLocaleString('cs-CZ', { 
-                day: '2-digit', 
-                month: '2-digit', 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-            document.getElementById(`${name}SliderEnd`).textContent = endDate.toLocaleString('cs-CZ', { 
-                day: '2-digit', 
-                month: '2-digit', 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
+            const startLabel = document.getElementById(`${name}SliderStart`);
+            const endLabel = document.getElementById(`${name}SliderEnd`);
+            
+            if (startLabel) {
+                startLabel.textContent = startDate.toLocaleString('cs-CZ', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
+            
+            if (endLabel) {
+                endLabel.textContent = endDate.toLocaleString('cs-CZ', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
 
             updateSingleChart(name, filteredData);
         }
 
         function updateSingleChart(name, data) {
-            if (name === 'temp') {
+            if (name === 'temp' && charts.temp) {
                 charts.temp.data.datasets[0].data = data.map(d => ({ x: d.datetime, y: d.teplota }));
                 charts.temp.update('none');
-            } else if (name === 'humidity') {
+            } else if (name === 'humidity' && charts.humidity) {
                 charts.humidity.data.datasets[0].data = data.map(d => ({ x: d.datetime, y: d.vlhkost }));
                 charts.humidity.update('none');
-            } else if (name === 'pressure') {
+            } else if (name === 'pressure' && charts.pressure) {
                 charts.pressure.data.datasets[0].data = data.map(d => ({ x: d.datetime, y: d.tlak }));
                 charts.pressure.update('none');
-            } else if (name === 'battery') {
+            } else if (name === 'battery' && charts.battery) {
                 charts.battery.data.datasets[0].data = data.map(d => ({ x: d.datetime, y: d.baterie }));
                 charts.battery.update('none');
-            } else if (name === 'all') {
+            } else if (name === 'all' && charts.all) {
                 charts.all.data.datasets[0].data = data.map(d => ({ x: d.datetime, y: d.teplota }));
                 charts.all.data.datasets[1].data = data.map(d => ({ x: d.datetime, y: d.vlhkost }));
                 charts.all.update('none');
-            } else if (name === 'quad') {
+            } else if (name === 'quad' && charts.quad) {
                 charts.quad.data.datasets[0].data = data.map(d => ({ x: d.datetime, y: d.teplota }));
                 charts.quad.data.datasets[1].data = data.map(d => ({ x: d.datetime, y: d.vlhkost }));
                 charts.quad.data.datasets[2].data = data.map(d => ({ x: d.datetime, y: d.tlak }));
