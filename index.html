@@ -218,6 +218,147 @@
             z-index: 5;
         }
 
+        /* ===== SROVNÁVACÍ GRAF ===== */
+        .compare-chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border-top: 5px solid transparent;
+            border-image: linear-gradient(90deg, #667eea 0%, #22c55e 100%) 1;
+        }
+
+        .compare-chart-container h2 {
+            margin-bottom: 8px;
+            color: #444;
+            font-size: 1.4em;
+        }
+
+        .compare-chart-container p.compare-subtitle {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .compare-legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .compare-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.88em;
+            font-weight: 600;
+            border: 2px solid transparent;
+            user-select: none;
+        }
+
+        .compare-legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .compare-legend-dot.dashed {
+            background: repeating-linear-gradient(
+                90deg,
+                currentColor 0px,
+                currentColor 4px,
+                transparent 4px,
+                transparent 8px
+            );
+            border-radius: 0;
+            height: 3px;
+            width: 20px;
+        }
+
+        .compare-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.78em;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        .compare-status-badge.loading-badge {
+            background: rgba(102,126,234,0.1);
+            color: #667eea;
+        }
+
+        .compare-status-badge.ok-badge {
+            background: rgba(34,197,94,0.1);
+            color: #16a34a;
+        }
+
+        .compare-status-badge.error-badge {
+            background: rgba(220,53,69,0.1);
+            color: #dc3545;
+        }
+
+        .compare-filter-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .compare-filter-row label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .compare-filter-row select {
+            padding: 7px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.9em;
+            background: white;
+        }
+
+        .compare-charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .compare-charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .compare-chart-panel {
+            position: relative;
+        }
+
+        .compare-chart-panel h3 {
+            font-size: 1em;
+            font-weight: 700;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .compare-chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
         /* Skleník mode - zelená barva */
         body.sklenik-mode header {
             color: #22c55e;
@@ -960,6 +1101,59 @@
                 </div>
             </div>
 
+            <!-- ===== SROVNÁVACÍ GRAF SKLENÍK vs. METEOSTANICE ===== -->
+            <div class="compare-chart-container" id="compareChartContainer" style="display:none;">
+                <h2>🔀 Srovnání: Skleník vs. Meteostanice</h2>
+                <p class="compare-subtitle">Porovnání teploty a vlhkosti naměřené v obou stanicích ve stejném časovém období</p>
+
+                <div class="compare-filter-row">
+                    <label>📅 Období:</label>
+                    <select id="compareTimeRange" onchange="updateCompareChart()">
+                        <option value="1">Poslední den</option>
+                        <option value="3">Poslední 3 dny</option>
+                        <option value="7" selected>Posledních 7 dní</option>
+                        <option value="14">Posledních 14 dní</option>
+                        <option value="30">Posledních 30 dní</option>
+                        <option value="all">Všechna data</option>
+                    </select>
+                    <span id="compareStatusBadge" class="compare-status-badge loading-badge">⏳ Načítám data skleníku...</span>
+                </div>
+
+                <div class="compare-legend">
+                    <div class="compare-legend-item" style="border: 2px solid #e53935; background:rgba(229,57,53,0.08);">
+                        <div class="compare-legend-dot" style="background:#e53935;"></div>
+                        <span>⛅ Meteostanice – teplota (°C)</span>
+                    </div>
+                    <div class="compare-legend-item" style="border: 2px solid #22c55e; background:rgba(34,197,94,0.08);">
+                        <div class="compare-legend-dot" style="background:#22c55e;"></div>
+                        <span>🌿 Skleník – teplota (°C)</span>
+                    </div>
+                    <div class="compare-legend-item" style="border: 2px solid #e53935; background:rgba(229,57,53,0.08); opacity:0.7;">
+                        <div class="compare-legend-dot" style="background:#e53935;"></div>
+                        <span>⛅ Meteostanice – vlhkost (%)</span>
+                    </div>
+                    <div class="compare-legend-item" style="border: 2px solid #22c55e; background:rgba(34,197,94,0.08); opacity:0.7;">
+                        <div class="compare-legend-dot" style="background:#22c55e;"></div>
+                        <span>🌿 Skleník – vlhkost (%)</span>
+                    </div>
+                </div>
+
+                <div class="compare-charts-grid">
+                    <div class="compare-chart-panel">
+                        <h3>🌡️ Teplota (°C)</h3>
+                        <div class="compare-chart-wrapper">
+                            <canvas id="compareTempChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="compare-chart-panel">
+                        <h3>💧 Vlhkost (%)</h3>
+                        <div class="compare-chart-wrapper">
+                            <canvas id="compareHumidityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Ostatní grafy (baterie, srážky) -->
             <div class="chart-grid" id="chartsGrid" style="display: none;">
                 <!-- prázdné divy pro zachování canvas elementů temp/humidity/pressure (používají se v denních/měs. grafech) -->
@@ -1060,31 +1254,6 @@
                     <div class="slider-labels">
                         <span id="allSliderStart">-</span>
                         <span id="allSliderEnd">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quad graf - jen pro meteostanici -->
-            <div class="chart-container full-width meteo-only" id="quadChart" style="display: none;">
-                <h2>📈 Všechny metriky meteostanice</h2>
-                <p style="color: #666; margin-bottom: 10px; font-size: 0.9em;">Teplota (červená, vlevo) • Vlhkost (modrá, vpravo) • Tlak (tyrkysová, vlevo) • Baterie (žlutá, vpravo)</p>
-                <div class="chart-controls">
-                    <button onclick="resetZoom('quad')">↺ Reset zoom</button>
-                    <button onclick="zoomIn('quad')">🔍+ Přiblížit</button>
-                    <button onclick="zoomOut('quad')">🔍- Oddálit</button>
-                </div>
-                <div class="chart-wrapper" style="height: 500px;"><canvas id="quadAxisChart"></canvas></div>
-                <div class="chart-slider-container">
-                    <div class="chart-slider" id="quadSlider">
-                        <canvas class="chart-slider-preview" id="quadSliderPreview"></canvas>
-                        <div class="chart-slider-window" id="quadSliderWindow">
-                            <div class="chart-slider-handle left"></div>
-                            <div class="chart-slider-handle right"></div>
-                        </div>
-                    </div>
-                    <div class="slider-labels">
-                        <span id="quadSliderStart">-</span>
-                        <span id="quadSliderEnd">-</span>
                     </div>
                 </div>
             </div>
@@ -1428,12 +1597,11 @@
 
         // ===== KONFIGURACE API =====
         const API_METEO_URL = 'https://meteosazava.baborovsky-jakub.workers.dev/';
-        // URL pro skleník se sestavuje dynamicky v loadData() jako API_METEO_URL + '?source=sklenik'
 
         const AUTO_REFRESH_INTERVAL = 15 * 60 * 1000;
 
         // ===== STAV APLIKACE =====
-        let currentSource = 'meteostanice'; // 'meteostanice' nebo 'sklenik'
+        let currentSource = 'meteostanice';
         let rawData = [];
         let currentData = [];
         let dailyDataFiltered = [];
@@ -1442,6 +1610,11 @@
         let charts = {};
         let autoRefreshTimer = null;
         let sliders = {};
+
+        // ===== DATA PRO SROVNÁVACÍ GRAF =====
+        let compareMeteoData = [];   // vždy data meteostanice
+        let compareSklenikData = []; // vždy data skleníku
+        let compareChartsInitialized = false;
 
         // ===== KONFIGURACE ZDROJŮ DAT =====
         const SOURCE_CONFIG = {
@@ -1470,7 +1643,188 @@
         window.addEventListener('DOMContentLoaded', function() {
             loadData();
             autoRefreshTimer = setInterval(loadData, AUTO_REFRESH_INTERVAL);
+            // Načíst data pro srovnávací graf ihned
+            loadCompareData();
         });
+
+        // ===== SROVNÁVACÍ GRAF – NAČÍTÁNÍ DAT =====
+        async function loadCompareData() {
+            const badge = document.getElementById('compareStatusBadge');
+            if (badge) {
+                badge.className = 'compare-status-badge loading-badge';
+                badge.textContent = '⏳ Načítám data...';
+            }
+            try {
+                const [meteoResp, sklenikResp] = await Promise.all([
+                    fetch(API_METEO_URL, { method: 'GET', headers: { 'Accept': 'application/json' } }),
+                    fetch(API_METEO_URL + '?source=sklenik', { method: 'GET', headers: { 'Accept': 'application/json' } })
+                ]);
+                if (!meteoResp.ok || !sklenikResp.ok) throw new Error('Chyba při načítání dat pro srovnání');
+                const [meteoJson, sklenikJson] = await Promise.all([meteoResp.json(), sklenikResp.json()]);
+                if (!meteoJson.success || !sklenikJson.success) throw new Error('Neplatná data pro srovnání');
+
+                compareMeteoData = (meteoJson.data || []).map(row => {
+                    const datetime = new Date(row.datetime);
+                    if (isNaN(datetime.getTime())) return null;
+                    return { datetime, teplota: parseFloat(row.teplota) || 0, vlhkost: parseFloat(row.vlhkost) || 0 };
+                }).filter(Boolean).sort((a, b) => a.datetime - b.datetime);
+
+                compareSklenikData = (sklenikJson.data || []).map(row => {
+                    const datetime = new Date(row.datetime || row.datum_a_cas);
+                    if (isNaN(datetime.getTime())) return null;
+                    return { datetime, teplota: parseFloat(row.teplota) || 0, vlhkost: parseFloat(row.vlhkost) || 0 };
+                }).filter(Boolean).sort((a, b) => a.datetime - b.datetime);
+
+                if (badge) {
+                    badge.className = 'compare-status-badge ok-badge';
+                    badge.textContent = `✅ ${compareMeteoData.length} meteo + ${compareSklenikData.length} skleník záznamů`;
+                }
+                updateCompareChart();
+            } catch (err) {
+                if (badge) {
+                    badge.className = 'compare-status-badge error-badge';
+                    badge.textContent = '❌ Chyba: ' + err.message;
+                }
+            }
+        }
+
+        function filterByRange(data, rangeDays) {
+            if (rangeDays === 'all') return data;
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - parseInt(rangeDays));
+            return data.filter(d => d.datetime >= cutoff);
+        }
+
+        function updateCompareChart() {
+            const range = document.getElementById('compareTimeRange')?.value || '7';
+            const meteoFiltered = filterByRange(compareMeteoData, range);
+            const sklenikFiltered = filterByRange(compareSklenikData, range);
+
+            const zoomOptions = {
+                zoom: { wheel: { enabled: true, speed: 0.1 }, pinch: { enabled: true }, mode: 'x' },
+                pan: { enabled: true, mode: 'x' },
+                limits: { x: { min: 'original', max: 'original' } }
+            };
+            const xScaleOptions = {
+                type: 'time',
+                time: { unit: 'hour', displayFormats: { hour: 'HH:mm', day: 'dd.MM' }, tooltipFormat: 'dd.MM.yyyy HH:mm' },
+                ticks: { source: 'auto', maxRotation: 0 },
+                grid: { color: 'rgba(0,0,0,0.05)' }
+            };
+
+            // Teplota
+            if (!charts.compareTemp) {
+                const ctx = document.getElementById('compareTempChart');
+                if (ctx) {
+                    charts.compareTemp = new Chart(ctx, {
+                        type: 'line',
+                        data: { datasets: [] },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                zoom: zoomOptions,
+                                tooltip: { mode: 'index', intersect: false }
+                            },
+                            interaction: { mode: 'index', intersect: false },
+                            scales: {
+                                x: xScaleOptions,
+                                y: {
+                                    title: { display: true, text: '°C', font: { weight: 'bold' } },
+                                    grid: { color: 'rgba(0,0,0,0.05)' }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Vlhkost
+            if (!charts.compareHumidity) {
+                const ctx2 = document.getElementById('compareHumidityChart');
+                if (ctx2) {
+                    charts.compareHumidity = new Chart(ctx2, {
+                        type: 'line',
+                        data: { datasets: [] },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                zoom: zoomOptions,
+                                tooltip: { mode: 'index', intersect: false }
+                            },
+                            interaction: { mode: 'index', intersect: false },
+                            scales: {
+                                x: xScaleOptions,
+                                y: {
+                                    title: { display: true, text: '%', font: { weight: 'bold' } },
+                                    min: 0, max: 100,
+                                    grid: { color: 'rgba(0,0,0,0.05)' }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (charts.compareTemp) {
+                charts.compareTemp.data.datasets = [
+                    {
+                        label: 'Teplota – Meteostanice',
+                        data: meteoFiltered.map(d => ({ x: d.datetime, y: d.teplota })),
+                        borderColor: '#e53935',
+                        backgroundColor: 'rgba(229,57,53,0.07)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        tension: 0.3,
+                        fill: false
+                    },
+                    {
+                        label: 'Teplota – Skleník',
+                        data: sklenikFiltered.map(d => ({ x: d.datetime, y: d.teplota })),
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34,197,94,0.07)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        tension: 0.3,
+                        fill: false
+                    }
+                ];
+                charts.compareTemp.update();
+            }
+
+            if (charts.compareHumidity) {
+                charts.compareHumidity.data.datasets = [
+                    {
+                        label: 'Vlhkost – Meteostanice',
+                        data: meteoFiltered.map(d => ({ x: d.datetime, y: d.vlhkost })),
+                        borderColor: '#e53935',
+                        backgroundColor: 'rgba(229,57,53,0.07)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        tension: 0.3,
+                        fill: false
+                    },
+                    {
+                        label: 'Vlhkost – Skleník',
+                        data: sklenikFiltered.map(d => ({ x: d.datetime, y: d.vlhkost })),
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34,197,94,0.07)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        tension: 0.3,
+                        fill: false
+                    }
+                ];
+                charts.compareHumidity.update();
+            }
+        }
 
         // ===== PŘEPÍNÁNÍ ZDROJE DAT =====
         function switchDataSource(source) {
@@ -1479,36 +1833,27 @@
             currentSource = source;
             const config = SOURCE_CONFIG[source];
 
-            // Aktualizace vzhledu
             document.body.className = config.bodyClass;
             document.getElementById('headerTitle').textContent = config.title;
             document.getElementById('headerSubtitle').textContent = config.subtitle;
 
-            // Aktualizace tlačítek zdroje
             document.getElementById('btnMeteo').classList.toggle('active', source === 'meteostanice');
             document.getElementById('btnSklenik').classList.toggle('active', source === 'sklenik');
 
-            // Animace přechodu
             document.querySelector('.container').classList.add('source-transition');
             setTimeout(() => document.querySelector('.container').classList.remove('source-transition'), 500);
 
-            // Aktualizace nadpisu grafu baterie
             document.getElementById('batteryChartTitle').textContent = config.batteryChartTitle;
 
-            // Zobrazit/skrýt prvky pouze pro meteostanici
             updateMeteoOnlyVisibility(config.hasPressure);
-
-            // Aktualizace heatmap options
             updateHeatmapOptions(config.hasPressure);
 
-            // Zničit existující grafy a znovu inicializovat
             destroyAllCharts();
             charts = {};
             sliders = {};
             rawData = [];
             comboSeriesVisible = { temp: true, humidity: true, pressure: true };
 
-            // Načíst nová data
             loadData();
         }
 
@@ -1525,7 +1870,6 @@
                 opt.disabled = !hasPressure;
                 opt.style.display = hasPressure ? '' : 'none';
             });
-            // Pokud je vybraná nepodporovaná metrika, přepnout na teplotu
             if (!hasPressure && (currentVal === 'tlak' || currentVal === 'srazky')) {
                 metricSelect.value = 'teplota';
             }
@@ -1538,13 +1882,11 @@
             document.getElementById('error').style.display = 'none';
             document.getElementById('success').style.display = 'none';
 
-            // URL se sestavuje dynamicky v době volání – vždy odráží aktuální currentSource
             const BASE_WORKER = 'https://meteosazava.baborovsky-jakub.workers.dev/';
             const apiUrl = currentSource === 'sklenik'
                 ? BASE_WORKER + '?source=sklenik'
                 : BASE_WORKER;
 
-            // Uložíme zdroj pro kontrolu po dokončení fetch (ochrana při rychlém přepínání)
             const calledForSource = currentSource;
 
             try {
@@ -1559,7 +1901,6 @@
 
                 if (!jsonData.success) throw new Error(jsonData.error || 'Chyba při načítání dat');
 
-                // Pokud uživatel přepnul zdroj než se dokončil fetch, zahodit odpověď
                 if (calledForSource !== currentSource) return;
 
                 if (calledForSource === 'sklenik') {
@@ -1580,7 +1921,6 @@
             }
         }
 
-        // ===== PARSOVÁNÍ DAT METEOSTANICE =====
         function parseMeteoResponse(data) {
             try {
                 if (!Array.isArray(data) || data.length === 0) throw new Error('Žádná data v databázi');
@@ -1605,23 +1945,20 @@
             }
         }
 
-        // ===== PARSOVÁNÍ DAT SKLENÍKU =====
-        // Tabulka sklenik má sloupce: teplota, vlhkost, napeti, datum_a_cas
         function parseSklenikResponse(data) {
             try {
                 if (!Array.isArray(data) || data.length === 0) throw new Error('Žádná data skleníku v databázi');
 
                 rawData = data.map(row => {
-                    // Worker pro skleník vrací datetime z datum_a_cas
                     const datetime = new Date(row.datetime || row.datum_a_cas);
                     if (isNaN(datetime.getTime())) return null;
                     return {
                         datetime,
                         teplota: parseFloat(row.teplota) || 0,
                         vlhkost: parseFloat(row.vlhkost) || 0,
-                        tlak: 0,        // skleník nemá tlak
+                        tlak: 0,
                         baterie: parseFloat(row.napeti || row.baterie) || 0,
-                        srazky: 0,      // skleník nemá srážky
+                        srazky: 0,
                         baterieSrazkomeru: 0
                     };
                 }).filter(item => item !== null);
@@ -1650,13 +1987,10 @@
             updateCurrentData();
             updateStats(rawData);
 
-            // Aktualizovat viditelnost meteo-only prvků
             const config = SOURCE_CONFIG[currentSource];
             updateMeteoOnlyVisibility(config.hasPressure);
             updateHeatmapOptions(config.hasPressure);
         }
-
-        // ===== ZBYTEK FUNKCÍ (beze změny od originálu) =====
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -1689,6 +2023,7 @@
                 if (chart && typeof chart.destroy === 'function') chart.destroy();
             });
             charts.combo = null;
+            // Nezničit srovnávací grafy – ty jsou nezávislé na zdroji
         }
 
         function updateCurrentData() {
@@ -1890,16 +2225,14 @@
             document.getElementById('statsGrid').style.display = 'grid';
             document.getElementById('tabs').style.display = 'flex';
             document.getElementById('comboChartContainer').style.display = 'block';
+            document.getElementById('compareChartContainer').style.display = 'block';
             document.getElementById('chartsGrid').style.display = 'grid';
-            document.getElementById('multiChart').style.display = 'none'; // nahrazen combo grafem
-            document.getElementById('quadChart').style.display = 'none';  // nahrazen combo grafem
+            document.getElementById('multiChart').style.display = 'none';
             document.getElementById('heatmapContainer').style.display = 'block';
             document.getElementById('distributionChart').style.display = 'block';
             document.getElementById('scatterChart').style.display = 'block';
-            // Zobrazit/skrýt legendu tlaku podle zdroje
             const legendPressure = document.getElementById('legendPressure');
             if (legendPressure) legendPressure.style.display = hasPressure ? 'flex' : 'none';
-            // Aktualizovat titulek combo grafu
             document.getElementById('comboChartTitle').textContent = hasPressure
                 ? '📈 Teplota / Vlhkost / Tlak'
                 : '📈 Teplota / Vlhkost';
@@ -1996,7 +2329,6 @@
             };
         }
 
-        // Stav viditelnosti sérií v combo grafu
         let comboSeriesVisible = { temp: true, humidity: true, pressure: true };
 
         function toggleComboSeries(series) {
@@ -2031,7 +2363,7 @@
                 interaction: {mode:'index', intersect:false}
             };
 
-            // ---- KOMBINOVANÝ GRAF (tmep styl) ----
+            // ---- KOMBINOVANÝ GRAF ----
             const comboCanvas = document.getElementById('comboChart');
             if (comboCanvas) {
                 charts.combo = new Chart(comboCanvas, {
@@ -2090,7 +2422,6 @@
                 });
             }
 
-            // Staré grafy temp/humidity/pressure jsou nyní skryté canvasy - nepotřebujeme je inicializovat
             charts.temp = null;
             charts.humidity = null;
             charts.pressure = null;
@@ -2098,7 +2429,6 @@
             charts.rain = new Chart(document.getElementById('rainChart'), {type:'bar', data:{datasets:[]}, options:{...commonOptions, scales:{...commonOptions.scales, y:{beginAtZero:true}, y1:{position:'right',grid:{drawOnChartArea:false}}}}});
             charts.rainBattery = new Chart(document.getElementById('rainBatteryChart'), {type:'line', data:{datasets:[]}, options:commonOptions});
             charts.all = new Chart(document.getElementById('allParamsChart'), {type:'line', data:{datasets:[]}, options:{...commonOptions, scales:{x:{type:'time'}, yLeft:{position:'left'}, yRight:{position:'right',grid:{drawOnChartArea:false}}}}});
-            charts.quad = new Chart(document.getElementById('quadAxisChart'), {type:'line', data:{datasets:[]}, options:{...commonOptions, scales:{x:{type:'time'}, y1:{position:'left'}, y2:{position:'right',grid:{drawOnChartArea:false}}, y3:{position:'left',grid:{drawOnChartArea:false}}, y4:{position:'right',grid:{drawOnChartArea:false}}}}});
             charts.distribution = new Chart(document.getElementById('distributionCanvas'), {type:'bar', data:{datasets:[]}, options:{responsive:true,maintainAspectRatio:false}});
             charts.scatter = new Chart(document.getElementById('scatterCanvas'), {type:'scatter', data:{datasets:[]}, options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'Teplota (°C)'}},y:{title:{display:true,text:'Vlhkost (%)'}}}}});
 
@@ -2131,14 +2461,12 @@
         }
 
         function getMidnightAnnotations(data) {
-            // Vrátí pole časů půlnocí v datech pro svislé čáry
             const midnights = [];
             if (!data || data.length === 0) return midnights;
             let prevDate = null;
             data.forEach(d => {
                 const day = d.datetime.toDateString();
                 if (prevDate && day !== prevDate) {
-                    // Najdi přesný čas půlnoci
                     const midnight = new Date(d.datetime);
                     midnight.setHours(0, 0, 0, 0);
                     midnights.push(midnight);
@@ -2152,7 +2480,6 @@
             if (!charts.combo) return;
             const hasPressure = SOURCE_CONFIG[currentSource].hasPressure;
 
-            // Půlnoce jako annotation
             const midnights = getMidnightAnnotations(data);
             const annotations = {};
             midnights.forEach((m, i) => {
@@ -2175,7 +2502,6 @@
                 };
             });
 
-            // Datasety
             const datasets = [
                 {
                     label: 'Teplota',
@@ -2222,13 +2548,9 @@
             }
 
             charts.combo.data.datasets = datasets;
-
-            // Zobrazit/skrýt osy podle hasPressure
             charts.combo.options.scales.yPressure.display = hasPressure;
-            // Annotations
             charts.combo.options.plugins.annotation = { annotations };
 
-            // Obnovit stav viditelnosti sérií
             datasets.forEach((ds, i) => {
                 const key = i === 0 ? 'temp' : i === 1 ? 'humidity' : 'pressure';
                 const meta = charts.combo.getDatasetMeta(i);
@@ -2240,10 +2562,8 @@
         }
 
         function updateAllCharts(data) {
-            // Hlavní kombinovaný graf
             updateComboChart(data);
 
-            // Staré grafy jsou null, přeskočit
             if (charts.temp) charts.temp.data.datasets = [{label:'Teplota (°C)', data:data.map(d=>({x:d.datetime,y:d.teplota})), borderColor:'rgb(255,99,132)', tension:0.4, fill:true}];
             if (charts.humidity) charts.humidity.data.datasets = [{label:'Vlhkost (%)', data:data.map(d=>({x:d.datetime,y:d.vlhkost})), borderColor:'rgb(54,162,235)', tension:0.4, fill:true}];
             if (charts.pressure) charts.pressure.data.datasets = [{label:'Tlak (hPa)', data:data.map(d=>({x:d.datetime,y:d.tlak})), borderColor:'rgb(75,192,192)', tension:0.4, fill:true}];
@@ -2258,12 +2578,6 @@
             charts.all.data.datasets = [
                 {label:'Teplota (°C)', data:data.map(d=>({x:d.datetime,y:d.teplota})), borderColor:'rgb(255,99,132)', tension:0.4, yAxisID:'yLeft'},
                 {label:'Vlhkost (%)', data:data.map(d=>({x:d.datetime,y:d.vlhkost})), borderColor:'rgb(54,162,235)', tension:0.4, yAxisID:'yRight'}
-            ];
-            charts.quad.data.datasets = [
-                {label:'Teplota (°C)', data:data.map(d=>({x:d.datetime,y:d.teplota})), borderColor:'#ff6384', tension:0.4, yAxisID:'y1'},
-                {label:'Vlhkost (%)', data:data.map(d=>({x:d.datetime,y:d.vlhkost})), borderColor:'#36a2eb', tension:0.4, yAxisID:'y2'},
-                {label:'Tlak (hPa)', data:data.map(d=>({x:d.datetime,y:d.tlak})), borderColor:'#4bc0c0', tension:0.4, yAxisID:'y3'},
-                {label:'Baterie (V)', data:data.map(d=>({x:d.datetime,y:d.baterie})), borderColor:'#ffce56', tension:0.4, yAxisID:'y4'}
             ];
 
             const tempBins = createHistogram(data.map(d=>d.teplota), 25);
@@ -2683,13 +2997,6 @@
                 charts.all.data.datasets[1].data = data.map(d=>({x:d.datetime,y:d.vlhkost}));
                 if (data.length > 0) { charts.all.options.scales.x.min = data[0].datetime; charts.all.options.scales.x.max = data[data.length-1].datetime; }
                 charts.all.update('none');
-            } else if (name === 'quad' && charts.quad) {
-                charts.quad.data.datasets[0].data = data.map(d=>({x:d.datetime,y:d.teplota}));
-                charts.quad.data.datasets[1].data = data.map(d=>({x:d.datetime,y:d.vlhkost}));
-                charts.quad.data.datasets[2].data = data.map(d=>({x:d.datetime,y:d.tlak}));
-                charts.quad.data.datasets[3].data = data.map(d=>({x:d.datetime,y:d.baterie}));
-                if (data.length > 0) { charts.quad.options.scales.x.min = data[0].datetime; charts.quad.options.scales.x.max = data[data.length-1].datetime; }
-                charts.quad.update('none');
             }
         }
 
